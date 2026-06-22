@@ -29,9 +29,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
-def pytest_collection_modifyitems(
-    config: pytest.Config, items: list[pytest.Item]
-) -> None:
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     skip_gpu = pytest.mark.skip(reason="needs --run-gpu to enable")
     skip_slow = pytest.mark.skip(reason="needs --run-slow to enable")
     run_gpu = config.getoption("--run-gpu")
