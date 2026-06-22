@@ -86,7 +86,10 @@ def test_loop_is_deterministic_with_fixed_seed() -> None:
         model = _TinyLM()
         opt = torch.optim.SGD(model.parameters(), lr=1e-2)
         sched = torch.optim.lr_scheduler.ConstantLR(opt, factor=1.0)
-        return [e["loss"] for e in train_steps(model, opt, sched, _make_loader(), _make_cfg(max_steps=3))]
+        return [
+            e["loss"]
+            for e in train_steps(model, opt, sched, _make_loader(), _make_cfg(max_steps=3))
+        ]
 
     assert run() == run()
 
@@ -107,11 +110,7 @@ def test_grad_accumulation_consumes_n_microbatches_per_step() -> None:
             yield b
 
     # 4 optimizer steps * accum=3 = 12 micro-batches consumed.
-    list(
-        train_steps(
-            model, opt, sched, counting_loader(), _make_cfg(max_steps=4, grad_accum=3)
-        )
-    )
+    list(train_steps(model, opt, sched, counting_loader(), _make_cfg(max_steps=4, grad_accum=3)))
     assert sum(pulled) == 12
 
 
@@ -120,7 +119,10 @@ def test_loss_decreases_over_many_steps() -> None:
     model = _TinyLM()
     opt = torch.optim.SGD(model.parameters(), lr=1e-1)
     sched = torch.optim.lr_scheduler.ConstantLR(opt, factor=1.0)
-    history = [e["loss"] for e in train_steps(model, opt, sched, _make_loader(n=100), _make_cfg(max_steps=20))]
+    history = [
+        e["loss"]
+        for e in train_steps(model, opt, sched, _make_loader(n=100), _make_cfg(max_steps=20))
+    ]
     # Average of the last 5 should beat the first 5 by a clear margin.
     early = sum(history[:5]) / 5
     late = sum(history[-5:]) / 5

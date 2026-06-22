@@ -84,9 +84,7 @@ def train_steps(
             loss_accum += float(out.loss.detach())
             n_tokens += batch["input_ids"].numel()
 
-        grad_norm = float(
-            torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip_grad)
-        )
+        grad_norm = float(torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip_grad))
         optimizer.step()
         scheduler.step()
 

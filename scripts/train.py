@@ -28,12 +28,12 @@ from pathlib import Path
 import numpy as np
 import torch
 import yaml
-from torch.utils.data import DataLoader
-
 from mamba3jp.data.binidx import BinIdxReader
 from mamba3jp.data.dataset import MemmapCLMDataset
 from mamba3jp.model.builder import build_model_from_yaml, count_parameters
 from mamba3jp.train.checkpoint import load_ckpt, rotate, save_ckpt
+from torch.utils.data import DataLoader
+
 from mamba3jp.train.loop import TrainConfig, train_steps
 from mamba3jp.train.optim import build_optimizer, build_scheduler
 
@@ -117,7 +117,9 @@ def main() -> int:
         device="cuda",
     )
     total, _ = count_parameters(model)
-    print(f"[train] model={args.model.stem} params={total:,} mixer={type(model.backbone.layers[0].mixer).__name__}")
+    print(
+        f"[train] model={args.model.stem} params={total:,} mixer={type(model.backbone.layers[0].mixer).__name__}"
+    )
 
     # gradient checkpointing for mamba layers (the upstream MambaLMHeadModel
     # doesn't expose ``gradient_checkpointing_enable`` so we wrap manually).
@@ -215,7 +217,9 @@ def main() -> int:
 
         if log["step"] % tcfg.eval_interval == 0:
             val_loss = _evaluate(model, val_loader, tcfg)
-            print(f"[train] step={log['step']} train_loss={log['loss']:.4f} val_loss={val_loss:.4f}")
+            print(
+                f"[train] step={log['step']} train_loss={log['loss']:.4f} val_loss={val_loss:.4f}"
+            )
             if wandb_run is not None:
                 wandb_run.log({"val/loss": val_loss}, step=log["step"])
             if val_loss < best_val:
