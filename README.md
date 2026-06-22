@@ -33,6 +33,8 @@ docker compose -f docker/docker-compose.yml run --rm train python -c "from mamba
 
 VS Code Dev Containers から **Reopen in Container** で開発できる。
 
+コミット前の lint/format チェックを自動化するには `pip install pre-commit && pre-commit install` を実行してください（詳細: [`.pre-commit-config.yaml`](.pre-commit-config.yaml)）。
+
 ## パイプライン
 
 ### 0. テスト (TDD)
