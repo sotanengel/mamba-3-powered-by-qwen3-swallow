@@ -35,12 +35,13 @@ def parse_args() -> argparse.Namespace:
 
 def compute_val_perplexity(args: argparse.Namespace) -> float:
     import torch
+    from torch.utils.data import DataLoader
+    from transformers import AutoTokenizer
+
     from mamba3jp.data.binidx import BinIdxReader
     from mamba3jp.data.dataset import MemmapCLMDataset
     from mamba3jp.model.builder import build_model_from_yaml
     from mamba3jp.train.checkpoint import load_ckpt
-    from torch.utils.data import DataLoader
-    from transformers import AutoTokenizer
 
     with args.data.open(encoding="utf-8") as f:
         data_cfg = yaml.safe_load(f)

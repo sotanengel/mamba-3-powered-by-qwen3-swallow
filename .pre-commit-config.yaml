@@ -1,0 +1,37 @@
+# Pre-commit hooks — mirrors the lint job in .github/workflows/test.yml
+#
+# Quick start:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Run against all files manually:
+#   pre-commit run --all-files
+#
+# Run the slow pytest hook (requires torch CPU + dev deps):
+#   pre-commit run pytest --hook-stage manual
+
+repos:
+  # ── ruff: lint (mirrors `ruff check .` in CI) ────────────────────────────
+  # auto-fixes what it can; blocks commit if anything remains unfixable
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.17
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  # ── ruff-format (mirrors `ruff format --check .` in CI) ──────────────────
+  # reformats files in-place; blocks commit if output changed
+      - id: ruff-format
+
+  # ── pytest: CPU tests — manual stage only ────────────────────────────────
+  # Not run on every commit (torch install makes it slow to set up locally).
+  # Runs in CI automatically. Invoke locally with:
+  #   pre-commit run pytest --hook-stage manual
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (CPU-only, manual)
+        language: system
+        entry: pytest tests/ -q
+        pass_filenames: false
+        stages: [manual]
