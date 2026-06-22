@@ -1,0 +1,16 @@
+# Mamba-3 130M (main configuration)
+# Mirrors Mamba-2 130M's d_model/n_layer to keep param count comparable when
+# embeddings are tied. RTX 3060 Ti 8GB has ample VRAM headroom at this size.
+name: mamba3-130m
+d_model: 768
+n_layer: 24
+rms_norm: true
+fused_add_norm: true
+residual_in_fp32: true
+tie_embeddings: true
+ssm_cfg:
+  layer: Mamba3
+  d_state: 128
+  headdim: 64
+  is_mimo: false
+  chunk_size: 64

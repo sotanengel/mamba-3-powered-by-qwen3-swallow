@@ -1,0 +1,14 @@
+# Mamba-2 130M baseline. Used to verify the same data trains the previous-gen
+# architecture so we can attribute any quality gap to the Mamba-3 changes.
+name: mamba2-130m
+d_model: 768
+n_layer: 24
+rms_norm: true
+fused_add_norm: true
+residual_in_fp32: true
+tie_embeddings: true
+ssm_cfg:
+  layer: Mamba2
+  d_state: 128
+  headdim: 64
+  chunk_size: 256

@@ -1,0 +1,15 @@
+# Mamba-3 50M (fallback / smoke configuration)
+# Used when the 130M run is unstable, or to validate the full pipeline cheaply.
+name: mamba3-50m
+d_model: 512
+n_layer: 16
+rms_norm: true
+fused_add_norm: true
+residual_in_fp32: true
+tie_embeddings: true
+ssm_cfg:
+  layer: Mamba3
+  d_state: 128
+  headdim: 64
+  is_mimo: false
+  chunk_size: 64
