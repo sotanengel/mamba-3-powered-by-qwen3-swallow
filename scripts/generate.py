@@ -43,14 +43,15 @@ def _build_prompt(system: str, user: str, *, thinking: bool) -> str:
 def main() -> int:
     args = parse_args()
     import torch
-    from transformers import AutoTokenizer
-
     from mamba3jp.model.builder import build_model_from_yaml
     from mamba3jp.train.checkpoint import load_ckpt
+    from transformers import AutoTokenizer
 
     tok = AutoTokenizer.from_pretrained(args.tokenizer, trust_remote_code=True)
     raw_vocab = getattr(tok, "vocab_size", None) or len(tok)
-    model = build_model_from_yaml(args.model, vocab_size=raw_vocab, dtype=torch.bfloat16, device="cuda")
+    model = build_model_from_yaml(
+        args.model, vocab_size=raw_vocab, dtype=torch.bfloat16, device="cuda"
+    )
     ck = load_ckpt(args.ckpt, map_location="cuda")
     model.load_state_dict(ck["model"])
     model.eval()
