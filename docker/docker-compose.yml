@@ -1,0 +1,48 @@
+# Mamba-3-JP docker compose
+#
+# Set JORYU_PATH to the host path of the joryu pipeline output, e.g.:
+#   PowerShell: $env:JORYU_PATH = "C:\qwen3-swallow-8B-RL-v0.2-AWQ-INT4-joryu-pipline\data\distilled"
+#   bash:       export JORYU_PATH=/c/qwen3-swallow-8B-RL-v0.2-AWQ-INT4-joryu-pipline/data/distilled
+#
+# Build:  docker compose -f docker/docker-compose.yml build train
+# Run:    docker compose -f docker/docker-compose.yml run --rm train bash
+
+services:
+  train:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: mamba3jp:latest
+    environment:
+      - PYTHONPATH=/workspace/src
+      - WANDB_DIR=/logs/wandb
+      - HF_HOME=/workspace/.cache/huggingface
+    volumes:
+      - ..:/workspace
+      - ${JORYU_PATH:-../../qwen3-swallow-8B-RL-v0.2-AWQ-INT4-joryu-pipline/data/distilled}:/data/joryu:ro
+      - ../checkpoints:/checkpoints
+      - ../logs:/logs
+    working_dir: /workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    shm_size: "8gb"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    tty: true
+    stdin_open: true
+
+  test:
+    image: mamba3jp:latest
+    environment:
+      - PYTHONPATH=/workspace/src
+      - CUDA_VISIBLE_DEVICES=""
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace
+    command: ["pytest", "tests/"]
