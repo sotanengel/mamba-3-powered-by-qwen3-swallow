@@ -18,7 +18,11 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--ckpt", type=Path, required=True)
     p.add_argument("--model", type=Path, required=True)
-    p.add_argument("--tokenizer", type=str, default="Qwen/Qwen3-8B")
+    p.add_argument(
+        "--tokenizer",
+        type=str,
+        default="tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4",
+    )
     p.add_argument("--prompt", type=str, required=True)
     p.add_argument("--system", type=str, default="あなたは丁寧で正確な日本語アシスタントです。")
     p.add_argument("--max-new-tokens", type=int, default=512)

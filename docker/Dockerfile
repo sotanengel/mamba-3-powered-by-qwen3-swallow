@@ -1,11 +1,13 @@
 # syntax=docker/dockerfile:1.7
-# Mamba-3-JP base image: CUDA 12.4 + PyTorch 2.3 + mamba-ssm (source built)
+# Mamba-3-JP base image: CUDA 12.4 + PyTorch 2.4.1 + mamba-ssm (source built)
+#                        + triton 3.5 (required by mamba3_siso_fwd at import)
 #
 # Build:
-#   docker compose build train
+#   docker compose -f docker/docker-compose.yml build train
 #
 # Smoke test:
-#   docker compose run --rm train python -c "from mamba_ssm import Mamba3; print('OK')"
+#   docker compose -f docker/docker-compose.yml run --rm train \
+#       python -c "from mamba_ssm import Mamba3; print('OK')"
 
 FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
 
@@ -56,13 +58,20 @@ RUN pip install --no-build-isolation --no-deps \
 
 # Project dependencies (non-GPU; the GPU ones are torch/bitsandbytes already in)
 COPY docker/requirements.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt && rm /tmp/requirements.txt
 
 # Upgrade triton LAST. mamba3_siso_fwd.py calls `triton.set_allocator` at import
 # time, which only exists in triton >= 3.4. mamba-ssm's own metadata asks for
 # triton>=3.5. Must run after requirements.txt because lm-eval pulls torch's pin
 # (triton==3.0.0) and would otherwise downgrade us.
 RUN pip install --upgrade "triton==3.5.0"
+
+# Strip build-only artifacts that are now baked into installed wheels.
+# (build-essential / ninja-build are kept; users may want to rebuild kernels
+# from a devcontainer shell. software-properties-common is only needed during
+# the deadsnakes PPA setup above.)
+RUN apt-get purge -y --auto-remove software-properties-common \
+    && rm -rf /root/.cache/pip /tmp/pip-* /tmp/* /var/tmp/* /var/cache/apt/archives/*.deb
 
 # Non-root user
 ARG USER_UID=1000

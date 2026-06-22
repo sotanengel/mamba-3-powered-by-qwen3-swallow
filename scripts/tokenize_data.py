@@ -1,10 +1,10 @@
-"""Tokenize ChatML JSONL into train/val binidx files using the Qwen3 tokenizer.
+"""Tokenize ChatML JSONL into train/val binidx files using the teacher tokenizer.
 
 Usage (inside container):
     python scripts/tokenize_data.py \
         --input data/intermediate/chatml.jsonl \
         --out-dir data/tokenized \
-        --tokenizer Qwen/Qwen3-8B \
+        --tokenizer tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4 \
         --val-ratio 0.05
 
 Each document is tokenized independently, gets an EOS token appended
@@ -31,7 +31,11 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--input", type=Path, required=True, help="ChatML JSONL")
     p.add_argument("--out-dir", type=Path, required=True)
-    p.add_argument("--tokenizer", type=str, default="Qwen/Qwen3-8B")
+    p.add_argument(
+        "--tokenizer",
+        type=str,
+        default="tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4",
+    )
     p.add_argument("--val-ratio", type=float, default=0.05)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument(

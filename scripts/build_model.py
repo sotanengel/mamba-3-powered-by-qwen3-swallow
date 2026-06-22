@@ -18,7 +18,11 @@ from pathlib import Path
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--config", type=Path, required=True)
-    p.add_argument("--tokenizer", type=str, default="Qwen/Qwen3-8B")
+    p.add_argument(
+        "--tokenizer",
+        type=str,
+        default="tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4",
+    )
     p.add_argument("--smoke-forward", action="store_true")
     p.add_argument("--seq-len", type=int, default=64)
     p.add_argument("--device", type=str, default="cuda")

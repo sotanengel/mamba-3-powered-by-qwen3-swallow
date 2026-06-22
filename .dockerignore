@@ -1,0 +1,46 @@
+# Keep the build context lean — these never need to be sent to the Docker daemon.
+.git/
+.github/
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Runtime caches
+.cache/
+wandb/
+logs/
+checkpoints/
+
+# Data artifacts (mounted via compose volumes, not baked into image)
+data/joryu_imports/
+data/intermediate/
+data/tokenized/
+*.bin
+*.idx
+*.safetensors
+*.pt
+*.pth
+
+# Local env
+.env
+.env.local
+
+# Docs / dev tooling
+docs/
+.devcontainer/
+.pre-commit-config.yaml
+.editorconfig
+
+# OS
+.DS_Store
+Thumbs.db
