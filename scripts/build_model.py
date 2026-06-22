@@ -49,9 +49,7 @@ def main() -> int:
     print(f"[build] mixer={type(model.backbone.layers[0].mixer).__name__}")
 
     if args.smoke_forward:
-        ids = torch.randint(0, model.lm_head.weight.shape[0], (1, args.seq_len)).to(
-            args.device
-        )
+        ids = torch.randint(0, model.lm_head.weight.shape[0], (1, args.seq_len)).to(args.device)
         with torch.no_grad():
             out = model(ids)
         logits = out.logits if hasattr(out, "logits") else out[0]
