@@ -111,9 +111,7 @@ def record_to_chatml(rec: dict[str, Any], *, include_thinking: bool = True) -> s
     return "".join(parts)
 
 
-def _build_assistant_body(
-    rec: dict[str, Any], answer: str, *, include_thinking: bool
-) -> str:
+def _build_assistant_body(rec: dict[str, Any], answer: str, *, include_thinking: bool) -> str:
     if not include_thinking:
         return answer
     if rec.get("mode") != "thinking":
