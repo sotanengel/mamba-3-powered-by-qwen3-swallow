@@ -62,9 +62,7 @@ class BinIdxWriter:
         if self._bin_file is None:
             raise RuntimeError("writer is not open; use as a context manager")
         if tokens.dtype != TOKEN_DTYPE:
-            raise ValueError(
-                f"BinIdxWriter expects dtype={TOKEN_DTYPE}, got {tokens.dtype}"
-            )
+            raise ValueError(f"BinIdxWriter expects dtype={TOKEN_DTYPE}, got {tokens.dtype}")
         if tokens.ndim != 1:
             raise ValueError(f"BinIdxWriter expects 1-D array, got {tokens.ndim}-D")
         self._bin_file.write(tokens.tobytes())
@@ -97,9 +95,7 @@ class BinIdxReader:
         with self.idx_path.open("rb") as f:
             magic = f.read(16)
             if magic != MAGIC:
-                raise ValueError(
-                    f"unrecognised idx magic: expected {MAGIC!r}, got {magic!r}"
-                )
+                raise ValueError(f"unrecognised idx magic: expected {MAGIC!r}, got {magic!r}")
             dtype_code = int(np.frombuffer(f.read(4), dtype=np.uint32)[0])
             if dtype_code != DTYPE_CODE:
                 raise ValueError(f"unsupported dtype code {dtype_code}")
@@ -119,9 +115,7 @@ class BinIdxReader:
     def __len__(self) -> int:
         return self.total_tokens
 
-    def __getitem__(
-        self, key: int | slice
-    ) -> npt.NDArray[np.uint32] | np.uint32:
+    def __getitem__(self, key: int | slice) -> npt.NDArray[np.uint32] | np.uint32:
         if self._mmap is None:
             raise IndexError("reader is empty")
         return self._mmap[key]
