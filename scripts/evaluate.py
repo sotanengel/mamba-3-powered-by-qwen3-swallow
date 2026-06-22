@@ -35,13 +35,12 @@ def parse_args() -> argparse.Namespace:
 
 def compute_val_perplexity(args: argparse.Namespace) -> float:
     import torch
-    from torch.utils.data import DataLoader
-    from transformers import AutoTokenizer
-
     from mamba3jp.data.binidx import BinIdxReader
     from mamba3jp.data.dataset import MemmapCLMDataset
     from mamba3jp.model.builder import build_model_from_yaml
     from mamba3jp.train.checkpoint import load_ckpt
+    from torch.utils.data import DataLoader
+    from transformers import AutoTokenizer
 
     with args.data.open(encoding="utf-8") as f:
         data_cfg = yaml.safe_load(f)
@@ -52,7 +51,9 @@ def compute_val_perplexity(args: argparse.Namespace) -> float:
 
     tok = AutoTokenizer.from_pretrained(data_cfg["tokenizer"], trust_remote_code=True)
     raw_vocab = getattr(tok, "vocab_size", None) or len(tok)
-    model = build_model_from_yaml(args.model, vocab_size=raw_vocab, dtype=torch.bfloat16, device="cuda")
+    model = build_model_from_yaml(
+        args.model, vocab_size=raw_vocab, dtype=torch.bfloat16, device="cuda"
+    )
     ck = load_ckpt(args.ckpt, map_location="cuda")
     model.load_state_dict(ck["model"])
     model.eval()
@@ -82,12 +83,18 @@ def main() -> int:
     # just record the command we would have run.
     harness_cmd = [
         "lm_eval",
-        "--model", "mamba_ssm",
-        "--model_args", f"pretrained={args.ckpt.parent}",
-        "--tasks", args.tasks,
-        "--device", "cuda",
-        "--batch_size", str(args.batch_size),
-        "--output_path", str(args.out / f"{args.ckpt.stem}_lmeval.json"),
+        "--model",
+        "mamba_ssm",
+        "--model_args",
+        f"pretrained={args.ckpt.parent}",
+        "--tasks",
+        args.tasks,
+        "--device",
+        "cuda",
+        "--batch_size",
+        str(args.batch_size),
+        "--output_path",
+        str(args.out / f"{args.ckpt.stem}_lmeval.json"),
     ]
     print(f"[eval] running: {' '.join(harness_cmd)}")
     rc = subprocess.run(harness_cmd, check=False).returncode
