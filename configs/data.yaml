@@ -1,0 +1,8 @@
+# Data pipeline configuration. Paths are container-internal; the host paths are
+# mapped through docker-compose volumes (see docker/docker-compose.yml).
+joryu_input: /data/joryu/responses.jsonl
+chatml_output: /workspace/data/intermediate/chatml.jsonl
+
+tokenizer: Qwen/Qwen3-8B
+tokenized_dir: /workspace/data/tokenized
+val_ratio: 0.05
