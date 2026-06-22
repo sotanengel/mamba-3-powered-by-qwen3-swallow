@@ -17,8 +17,9 @@ Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4 を教師とした日本語小型 Mamba-3 モ�
 | `configs/model_50m.yaml` | 512 | 16 | Mamba3 (SISO) | フォールバック / スモーク |
 | `configs/model_mamba2_130m.yaml` | 768 | 24 | Mamba2 | ベースライン |
 
-トークナイザは Qwen3-8B (語彙 ~151k) を再利用し、`tie_embeddings=True` で
-埋め込み層と出力層を共有する。
+トークナイザは教師と同一の `tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4`
+(語彙 ~151k、`Qwen/Qwen3-8B` と bit-identical) を再利用し、
+`tie_embeddings=True` で埋め込み層と出力層を共有する。
 
 ## セットアップ
 
@@ -64,7 +65,7 @@ python scripts/ingest_joryu.py \
 python scripts/tokenize_data.py \
     --input   data/intermediate/chatml.jsonl \
     --out-dir data/tokenized \
-    --tokenizer Qwen/Qwen3-8B \
+    --tokenizer tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4 \
     --val-ratio 0.05
 ```
 

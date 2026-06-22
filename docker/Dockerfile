@@ -1,11 +1,13 @@
 # syntax=docker/dockerfile:1.7
-# Mamba-3-JP base image: CUDA 12.4 + PyTorch 2.3 + mamba-ssm (source built)
+# Mamba-3-JP base image: CUDA 12.4 + PyTorch 2.4.1 + mamba-ssm (source built)
+#                        + triton 3.5 (required by mamba3_siso_fwd at import)
 #
 # Build:
-#   docker compose build train
+#   docker compose -f docker/docker-compose.yml build train
 #
 # Smoke test:
-#   docker compose run --rm train python -c "from mamba_ssm import Mamba3; print('OK')"
+#   docker compose -f docker/docker-compose.yml run --rm train \
+#       python -c "from mamba_ssm import Mamba3; print('OK')"
 
 FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
 
@@ -32,23 +34,44 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -sf /usr/bin/python3.11 /usr/local/bin/python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# PyTorch (cu124) — pinned to match mamba-ssm expectations
+# PyTorch (cu124) — 2.3.1 wheels are no longer published on the cu124 index;
+# 2.4.1+cu124 is the closest still-available release.
 RUN pip install --index-url https://download.pytorch.org/whl/cu124 \
-        torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1
+        torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 
-# packaging / ninja are required by mamba-ssm build_ext
-RUN pip install packaging ninja wheel setuptools
+# packaging / ninja are required by mamba-ssm build_ext.
+# einops / transformers are mamba-ssm runtime imports — install them here so the
+# next `pip install --no-deps` for mamba-ssm doesn't leave them missing.
+RUN pip install packaging ninja wheel setuptools einops transformers
 
 # causal-conv1d (mamba-ssm dependency)
 RUN pip install causal-conv1d>=1.4.0 --no-build-isolation
 
-# mamba-ssm: build from source (this is the expensive layer; pinned by commit for reproducibility)
-RUN pip install --no-build-isolation \
+# mamba-ssm: build from source.
+# `--no-deps` is critical: upstream `@main` declares tilelang / quack-kernels /
+# triton>=3.5 as hard deps, which force pip to upgrade torch to 2.12+cu130
+# and break the just-built selective_scan_cuda extension (ABI mismatch).
+# We skip those optional accelerators — Mamba3 still runs via the source-built
+# CUDA kernels against torch 2.4.1+cu124.
+RUN pip install --no-build-isolation --no-deps \
         git+https://github.com/state-spaces/mamba.git@main
 
 # Project dependencies (non-GPU; the GPU ones are torch/bitsandbytes already in)
 COPY docker/requirements.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt && rm /tmp/requirements.txt
+
+# Upgrade triton LAST. mamba3_siso_fwd.py calls `triton.set_allocator` at import
+# time, which only exists in triton >= 3.4. mamba-ssm's own metadata asks for
+# triton>=3.5. Must run after requirements.txt because lm-eval pulls torch's pin
+# (triton==3.0.0) and would otherwise downgrade us.
+RUN pip install --upgrade "triton==3.5.0"
+
+# Strip build-only artifacts that are now baked into installed wheels.
+# (build-essential / ninja-build are kept; users may want to rebuild kernels
+# from a devcontainer shell. software-properties-common is only needed during
+# the deadsnakes PPA setup above.)
+RUN apt-get purge -y --auto-remove software-properties-common \
+    && rm -rf /root/.cache/pip /tmp/pip-* /tmp/* /var/tmp/* /var/cache/apt/archives/*.deb
 
 # Non-root user
 ARG USER_UID=1000

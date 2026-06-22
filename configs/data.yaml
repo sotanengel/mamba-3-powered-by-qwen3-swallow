@@ -3,6 +3,10 @@
 joryu_input: /data/joryu/responses.jsonl
 chatml_output: /workspace/data/intermediate/chatml.jsonl
 
-tokenizer: Qwen/Qwen3-8B
+# Match the joryu teacher (Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4). The Swallow
+# tokenizer is bit-identical to Qwen/Qwen3-8B today (same 151k vocab, same
+# token ids), but pointing at the teacher is self-documenting and protects
+# us if Swallow ever extends its vocab.
+tokenizer: tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4
 tokenized_dir: /workspace/data/tokenized
 val_ratio: 0.05

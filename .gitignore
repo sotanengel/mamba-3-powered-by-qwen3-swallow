@@ -39,6 +39,9 @@ wandb/
 .env
 .env.local
 
+# HuggingFace / pip caches that land in the workspace when scripts run locally
+.cache/
+
 # OS
 .DS_Store
 Thumbs.db
