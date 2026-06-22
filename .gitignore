@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.so
+
+# venv
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+!.vscode/extensions.json
+.idea/
+
+# Data / model artifacts (do not commit large files)
+data/joryu_imports/
+data/intermediate/
+data/tokenized/
+checkpoints/
+logs/
+wandb/
+*.bin
+*.idx
+*.safetensors
+*.pt
+*.pth
+
+# Local env
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
