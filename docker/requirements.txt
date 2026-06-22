@@ -1,0 +1,20 @@
+# Runtime + tooling. torch/torchvision/torchaudio/causal-conv1d/mamba-ssm are installed
+# explicitly in the Dockerfile (pinned to CUDA 12.4 builds).
+bitsandbytes>=0.43
+transformers>=4.45
+tokenizers>=0.20
+sentencepiece>=0.2
+datasets>=2.20
+numpy>=1.26
+pyyaml>=6.0
+tqdm>=4.66
+zstandard>=0.22
+wandb>=0.17
+lm-eval==0.4.2
+# dev / test
+pytest>=8.0
+pytest-cov>=5.0
+ruff>=0.6
+mypy>=1.11
+types-PyYAML
+types-tqdm
