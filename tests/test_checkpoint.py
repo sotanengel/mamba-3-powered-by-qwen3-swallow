@@ -78,7 +78,11 @@ def test_rng_roundtrip(tmp_path: Path) -> None:
     random.seed(7)
     save_ckpt(path, model=model, optimizer=opt, scheduler=sched, step=0)
 
-    expected = (torch.rand(3).tolist(), np.random.rand(3).tolist(), [random.random() for _ in range(3)])
+    expected = (
+        torch.rand(3).tolist(),
+        np.random.rand(3).tolist(),
+        [random.random() for _ in range(3)],
+    )
 
     # Mutate RNGs, then load and check we got back the same draws.
     torch.manual_seed(123)
