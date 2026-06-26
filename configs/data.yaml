@@ -1,7 +1,19 @@
 # Data pipeline configuration. Paths are container-internal; the host paths are
 # mapped through docker-compose volumes (see docker/docker-compose.yml).
+
+# 単一 source (後方互換: joryu_input が指定されれば単一 raw として動く)。
 joryu_input: /data/joryu/responses.jsonl
+
+# 複数 source マージ (PR-4)。指定された場合 sources_yaml 経由でマージ ingest される。
+# 優先順位: curated > export > raw。curated 由来は raw 簡易フィルタを自動でスキップ。
+sources:
+  - { kind: raw, path: /data/joryu/responses.jsonl }
+  - { kind: curated, path: /data/joryu/curated/latest }
+
 chatml_output: /workspace/data/intermediate/chatml.jsonl
+
+# scores.jsonl の final_score 閾値 (null で無効)。
+min_score: null
 
 # Match the joryu teacher (Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4). The Swallow
 # tokenizer is bit-identical to Qwen/Qwen3-8B today (same 151k vocab, same

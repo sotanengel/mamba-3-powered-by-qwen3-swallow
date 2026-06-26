@@ -55,47 +55,112 @@ class SkipReason(enum.Enum):
     EMPTY_ANSWER = "empty_answer"
     UNCLOSED_THINK = "unclosed_think"
     REPEATED_CHARS = "repeated_chars"
+    MALFORMED_TURNS = "malformed_turns"
+    LOW_SCORE = "low_score"
 
 
-def classify_skip(rec: dict[str, Any]) -> SkipReason | None:
+def classify_skip(
+    rec: dict[str, Any],
+    *,
+    min_score: float | None = None,
+    score: float | None = None,
+    skip_quality_filter: bool = False,
+) -> SkipReason | None:
     """Return the first applicable skip reason for ``rec`` or ``None`` if it passes.
 
-    Order matters: cheaper checks first.
+    Order matters: cheaper checks first. EMPTY_ANSWER と turns 整合性は常に検査するが、
+    ``skip_quality_filter=True`` (curated バンドル由来) では UNCLOSED_THINK /
+    REPEATED_CHARS の再適用を省く。``min_score`` と ``score`` を併用すると閾値未満を
+    LOW_SCORE で落とす。score が ``None`` の場合 (= スコア未結合) は通過させる。
     """
     answer = str(rec.get("answer") or "").strip()
     if len(answer) < MIN_ANSWER_CHARS:
         return SkipReason.EMPTY_ANSWER
 
-    # Unclosed <think> in either the trace or the answer body.
-    for field in ("thinking_trace", "answer"):
-        text = rec.get(field)
-        if isinstance(text, str) and _has_unclosed_think(text):
-            return SkipReason.UNCLOSED_THINK
+    if not skip_quality_filter:
+        # Unclosed <think> in either the trace or the answer body.
+        for field in ("thinking_trace", "answer"):
+            text = rec.get(field)
+            if isinstance(text, str) and _has_unclosed_think(text):
+                return SkipReason.UNCLOSED_THINK
 
-    if _REPEAT_RE.search(answer):
-        return SkipReason.REPEATED_CHARS
-    trace = rec.get("thinking_trace")
-    if isinstance(trace, str) and _REPEAT_RE.search(trace):
-        return SkipReason.REPEATED_CHARS
+        if _REPEAT_RE.search(answer):
+            return SkipReason.REPEATED_CHARS
+        trace = rec.get("thinking_trace")
+        if isinstance(trace, str) and _REPEAT_RE.search(trace):
+            return SkipReason.REPEATED_CHARS
+
+    turns = rec.get("turns")
+    if isinstance(turns, list) and turns and not _turns_well_formed(turns):
+        return SkipReason.MALFORMED_TURNS
+
+    if min_score is not None and score is not None and score < min_score:
+        return SkipReason.LOW_SCORE
 
     return None
+
+
+def _turns_well_formed(turns: list[Any]) -> bool:
+    """``turns`` のロール順序を粗く検証する。
+
+    - 最初の要素は ``assistant`` でなければならない (tool が先頭に来ない)
+    - 各 ``tool`` turn は直前の ``assistant`` turn が ``tool_calls`` を持つこと
+    """
+    expect_tool_continuation = False
+    for turn in turns:
+        if not isinstance(turn, dict):
+            return False
+        role = turn.get("role")
+        if role == "assistant":
+            expect_tool_continuation = bool(turn.get("tool_calls"))
+        elif role == "tool":
+            if not expect_tool_continuation:
+                return False
+            # 連続する tool turn は許容するが、tool_call の対応が無いなら次の tool は許可しない
+        else:
+            return False
+    return True
 
 
 def _has_unclosed_think(text: str) -> bool:
     return text.count(THINK_OPEN) > text.count(THINK_CLOSE)
 
 
-def record_to_chatml(rec: dict[str, Any], *, include_thinking: bool = True) -> str | None:
+def record_to_chatml(
+    rec: dict[str, Any],
+    *,
+    include_thinking: bool = True,
+    include_tool_calls: bool = True,
+    min_score: float | None = None,
+    score: float | None = None,
+    skip_quality_filter: bool = False,
+) -> str | None:
     """Render a single joryu record as a Qwen3 ChatML string.
 
     Returns ``None`` if the record fails the quality filter.
 
     When ``include_thinking`` is True and the record is a thinking-mode answer
     with a non-empty ``thinking_trace``, the trace is wrapped in ``<think>...</think>``
-    and emitted at the top of the assistant turn.
+    and emitted at the top of the (first) assistant turn.
+
+    ``turns`` が非空の場合、:func:`record_to_chatml_multiturn` にディスパッチする。
     """
-    if classify_skip(rec) is not None:
+    if (
+        classify_skip(
+            rec,
+            min_score=min_score,
+            score=score,
+            skip_quality_filter=skip_quality_filter,
+        )
+        is not None
+    ):
         return None
+
+    turns = rec.get("turns")
+    if isinstance(turns, list) and turns:
+        return record_to_chatml_multiturn(
+            rec, include_thinking=include_thinking, include_tool_calls=include_tool_calls
+        )
 
     system_prompt = str(rec.get("system_prompt") or "").strip()
     prompt = str(rec.get("prompt") or "").strip()
@@ -120,6 +185,86 @@ def _build_assistant_body(rec: dict[str, Any], answer: str, *, include_thinking:
     if not isinstance(trace, str) or not trace.strip():
         return answer
     return f"{THINK_OPEN}\n{trace.strip()}\n{THINK_CLOSE}\n\n{answer}"
+
+
+# -- multi-turn rendering -----------------------------------------------------
+
+
+def record_to_chatml_multiturn(
+    rec: dict[str, Any],
+    *,
+    include_thinking: bool = True,
+    include_tool_calls: bool = True,
+) -> str | None:
+    """マルチターン (Tool Loop) レコードを Qwen3 ChatML 文字列にレンダリングする。
+
+    ``turns`` が空 / 形式不正の場合は ``None`` を返す。tool_call は Qwen3 ネイティブの
+    ``<tool_call>{"name":...,"arguments":...}</tool_call>`` ブロックで assistant content に
+    埋め込む。tool role は ``<|im_start|>tool`` で挟む。
+    """
+    turns = rec.get("turns")
+    if not isinstance(turns, list) or not turns:
+        return None
+    if not _turns_well_formed(turns):
+        return None
+
+    system_prompt = str(rec.get("system_prompt") or "").strip()
+    prompt = str(rec.get("prompt") or "").strip()
+
+    parts = [
+        f"{IM_START}system\n{system_prompt}{IM_END}\n",
+        f"{IM_START}user\n{prompt}{IM_END}\n",
+    ]
+    first_assistant_emitted = False
+    for turn in turns:
+        role = turn.get("role")
+        if role == "assistant":
+            body = _build_assistant_turn_body(
+                turn,
+                rec,
+                include_thinking=include_thinking and not first_assistant_emitted,
+                include_tool_calls=include_tool_calls,
+            )
+            parts.append(f"{IM_START}assistant\n{body}{IM_END}\n")
+            first_assistant_emitted = True
+        elif role == "tool":
+            tool_content = str(turn.get("content") or "")
+            parts.append(f"{IM_START}tool\n{tool_content}{IM_END}\n")
+        else:  # pragma: no cover — guarded by _turns_well_formed
+            return None
+    return "".join(parts)
+
+
+def _build_assistant_turn_body(
+    turn: dict[str, Any],
+    rec: dict[str, Any],
+    *,
+    include_thinking: bool,
+    include_tool_calls: bool,
+) -> str:
+    content = str(turn.get("content") or "").strip()
+    blocks: list[str] = []
+    if include_thinking and rec.get("mode") == "thinking":
+        trace = rec.get("thinking_trace")
+        if isinstance(trace, str) and trace.strip():
+            blocks.append(f"{THINK_OPEN}\n{trace.strip()}\n{THINK_CLOSE}\n")
+    if content:
+        blocks.append(content)
+    if include_tool_calls:
+        for call in turn.get("tool_calls") or []:
+            if not isinstance(call, dict):
+                continue
+            name = call.get("name")
+            args = call.get("arguments")
+            if not isinstance(name, str):
+                continue
+            payload = json.dumps(
+                {"name": name, "arguments": args if isinstance(args, dict) else {}},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            blocks.append(f"<tool_call>\n{payload}\n</tool_call>")
+    return "\n".join(blocks)
 
 
 # -- file streaming -----------------------------------------------------------
