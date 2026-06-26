@@ -24,6 +24,11 @@ max_steps: 100000
 use_amp: true     # bf16 autocast on CUDA
 gradient_checkpointing: true
 
+# distillation
+# PR-6: joryu の curate スコア (final_score) を per-sample 重みとして使う
+# 重み付きCE平均で学習する。tokenized_dir に train.weights.npy が必要。
+weighted_loss: false
+
 # logging / checkpointing
 log_interval: 10
 eval_interval: 500

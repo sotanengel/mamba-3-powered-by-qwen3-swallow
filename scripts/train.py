@@ -87,8 +87,25 @@ def main() -> int:
     tokenized_dir = Path(data_cfg_d["tokenized_dir"])
     train_reader = BinIdxReader(tokenized_dir / "train.bin", tokenized_dir / "train.idx")
     val_reader = BinIdxReader(tokenized_dir / "val.bin", tokenized_dir / "val.idx")
-    train_ds = MemmapCLMDataset(train_reader, seq_len=int(train_cfg_d["seq_len"]))
-    val_ds = MemmapCLMDataset(val_reader, seq_len=int(train_cfg_d["seq_len"]))
+
+    weighted_loss = bool(train_cfg_d.get("weighted_loss", False))
+    train_weights: np.ndarray | None = None
+    val_weights: np.ndarray | None = None
+    if weighted_loss:
+        tw_path = tokenized_dir / "train.weights.npy"
+        vw_path = tokenized_dir / "val.weights.npy"
+        if not tw_path.exists():
+            raise FileNotFoundError(
+                f"weighted_loss=true requires {tw_path}; re-run tokenize_data.py with PR-5"
+            )
+        train_weights = np.load(tw_path)
+        val_weights = np.load(vw_path) if vw_path.exists() else None
+        print(f"[train] weighted_loss=ON loaded {tw_path.name} (n={train_weights.shape[0]})")
+
+    train_ds = MemmapCLMDataset(
+        train_reader, seq_len=int(train_cfg_d["seq_len"]), weights=train_weights
+    )
+    val_ds = MemmapCLMDataset(val_reader, seq_len=int(train_cfg_d["seq_len"]), weights=val_weights)
     train_loader = DataLoader(
         train_ds,
         batch_size=int(train_cfg_d["batch_size"]),
@@ -194,6 +211,7 @@ def main() -> int:
         save_interval=int(train_cfg_d["save_interval"]),
         device="cuda",
         use_amp=bool(train_cfg_d.get("use_amp", True)),
+        weighted_loss=weighted_loss,
     )
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -205,15 +223,15 @@ def main() -> int:
         if wandb_run is not None and log["step"] % tcfg.log_interval == 0:
             import wandb
 
-            wandb_run.log(
-                {
-                    "train/loss": log["loss"],
-                    "train/lr": log["lr"],
-                    "train/grad_norm": log["grad_norm"],
-                    "train/tok_per_sec": log["tok_per_sec"],
-                },
-                step=log["step"],
-            )
+            log_payload = {
+                "train/loss": log["loss"],
+                "train/lr": log["lr"],
+                "train/grad_norm": log["grad_norm"],
+                "train/tok_per_sec": log["tok_per_sec"],
+            }
+            if "loss_unweighted" in log:
+                log_payload["train/loss_unweighted"] = log["loss_unweighted"]
+            wandb_run.log(log_payload, step=log["step"])
 
         if log["step"] % tcfg.eval_interval == 0:
             val_loss = _evaluate(model, val_loader, tcfg)
