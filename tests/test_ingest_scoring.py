@@ -85,5 +85,8 @@ def test_skip_quality_filter_combined_with_min_score() -> None:
     rec = _ok_record()
     rec["answer"] = "ああああああああああ"  # raw だと REPEATED_CHARS
     # curated 由来でフィルタスキップ → score 評価のみ
-    assert classify_skip(rec, skip_quality_filter=True, min_score=0.5, score=0.3) is SkipReason.LOW_SCORE
+    assert (
+        classify_skip(rec, skip_quality_filter=True, min_score=0.5, score=0.3)
+        is SkipReason.LOW_SCORE
+    )
     assert classify_skip(rec, skip_quality_filter=True, min_score=0.5, score=0.8) is None

@@ -203,9 +203,7 @@ def main() -> int:
             by_kind[src_kind] += 1
             if isinstance(meta["config_hash"], str):
                 config_hashes.add(meta["config_hash"])
-            out_f.write(
-                json.dumps({"text": chatml, "meta": meta}, ensure_ascii=False) + "\n"
-            )
+            out_f.write(json.dumps({"text": chatml, "meta": meta}, ensure_ascii=False) + "\n")
 
     manifest_partial = {
         "sources": [

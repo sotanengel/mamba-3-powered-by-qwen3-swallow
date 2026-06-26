@@ -142,15 +142,17 @@ def test_tokenize_round_trip_writes_weights_and_manifest(tmp_path: Path) -> None
             f"<|im_start|>user\nq{i}<|im_end|>\n"
             f"<|im_start|>assistant\na{i}<|im_end|>\n"
         )
-        docs.append({
-            "text": text,
-            "meta": {
-                "style_id": "polite",
-                "mode": "thinking",
-                "final_score": 0.9 if i % 2 == 0 else None,
-                "config_hash": "sha256-cfgX",
-            },
-        })
+        docs.append(
+            {
+                "text": text,
+                "meta": {
+                    "style_id": "polite",
+                    "mode": "thinking",
+                    "final_score": 0.9 if i % 2 == 0 else None,
+                    "config_hash": "sha256-cfgX",
+                },
+            }
+        )
     with intermediate.open("w", encoding="utf-8") as f:
         for d in docs:
             f.write(json.dumps(d, ensure_ascii=False) + "\n")

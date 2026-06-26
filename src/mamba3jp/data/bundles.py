@@ -277,7 +277,9 @@ def load_scores(path: Path) -> dict[str, ScoreEntry]:
             except (TypeError, ValueError):
                 continue
             rejected_by_raw = row.get("rejected_by") or []
-            rejected_by = [str(x) for x in rejected_by_raw] if isinstance(rejected_by_raw, list) else []
+            rejected_by = (
+                [str(x) for x in rejected_by_raw] if isinstance(rejected_by_raw, list) else []
+            )
             signal_raw = row.get("signal_scores") or {}
             signal_scores = (
                 {str(k): float(v) for k, v in signal_raw.items() if isinstance(v, (int, float))}

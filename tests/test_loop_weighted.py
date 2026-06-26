@@ -40,9 +40,7 @@ class _TinyLM(torch.nn.Module):
         logits = self.proj(h)
         loss = torch.tensor(0.0)
         if labels is not None:
-            loss = F.cross_entropy(
-                logits.reshape(-1, logits.size(-1)), labels.reshape(-1)
-            )
+            loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), labels.reshape(-1))
         return _Out(loss=loss, logits=logits)
 
 

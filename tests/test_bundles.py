@@ -315,8 +315,10 @@ def test_load_scores_skips_malformed_rows(tmp_path: Path) -> None:
     p = tmp_path / "scores.jsonl"
     # 1 行目: 正常、2 行目: record_hash 欠落で skip
     p.write_text(
-        json.dumps({"record_hash": "sha256-ok", "final_score": 0.5, "accepted": True}) + "\n"
-        + json.dumps({"final_score": 0.5}) + "\n",
+        json.dumps({"record_hash": "sha256-ok", "final_score": 0.5, "accepted": True})
+        + "\n"
+        + json.dumps({"final_score": 0.5})
+        + "\n",
         encoding="utf-8",
     )
     scores = load_scores(p)

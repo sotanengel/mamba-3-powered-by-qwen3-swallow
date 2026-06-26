@@ -105,9 +105,7 @@ def main() -> int:
     train_ds = MemmapCLMDataset(
         train_reader, seq_len=int(train_cfg_d["seq_len"]), weights=train_weights
     )
-    val_ds = MemmapCLMDataset(
-        val_reader, seq_len=int(train_cfg_d["seq_len"]), weights=val_weights
-    )
+    val_ds = MemmapCLMDataset(val_reader, seq_len=int(train_cfg_d["seq_len"]), weights=val_weights)
     train_loader = DataLoader(
         train_ds,
         batch_size=int(train_cfg_d["batch_size"]),

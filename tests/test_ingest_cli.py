@@ -234,8 +234,7 @@ def test_export_bundle_sha256_mismatch_fails(tmp_path: Path) -> None:
     _write_zstd(bundle / "responses.jsonl.zst", recs)
     (bundle / "meta.json").write_text("{}", encoding="utf-8")
     (bundle / "SHA256SUMS").write_text(
-        "0" * 64 + "  responses.jsonl.zst\n"
-        + hashlib.sha256(b"{}").hexdigest() + "  meta.json\n",
+        "0" * 64 + "  responses.jsonl.zst\n" + hashlib.sha256(b"{}").hexdigest() + "  meta.json\n",
         encoding="utf-8",
     )
     out = tmp_path / "out" / "chatml.jsonl"
