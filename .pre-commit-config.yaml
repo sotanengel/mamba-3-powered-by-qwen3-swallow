@@ -1,4 +1,5 @@
-# Pre-commit hooks — mirrors the lint job in .github/workflows/test.yml
+# Pre-commit hooks — CI lint job runs `pre-commit run --all-files` (see test.yml).
+# Local hooks are opt-in: `pip install pre-commit && pre-commit install`
 #
 # Quick start:
 #   pip install pre-commit
